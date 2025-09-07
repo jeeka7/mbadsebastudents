@@ -28,18 +28,15 @@ def read_students():
 
 # --- Streamlit App ---
 
-st.set_page_config(page_title="Class Database Viewer", layout="wide")
+st.set_page_config(page_title="MBA DSE BA 2025 Batch", layout="wide")
 
-st.title("Class Database Viewer")
-st.write("This application displays the student records from your database.")
+st.title("MBA DSE BA 2025 Batch")
 
 # Read and display the data from the database
 student_data = read_students()
 
 if not student_data.empty:
-    st.info(f"Found {len(student_data)} student records.")
-    
-    # Use st.dataframe to display the data in a table
+    # Use st.dataframe to display the data in a table. It's already a DataFrame.
     st.dataframe(
         student_data,
         use_container_width=True,
@@ -53,5 +50,3 @@ if not student_data.empty:
 else:
     st.warning("No student data found or an error occurred. Please ensure the 'students.db' file is in the same directory and contains a 'students' table.")
 
-st.markdown("---")
-st.write("App designed to perform read-only operations on the student database.")
