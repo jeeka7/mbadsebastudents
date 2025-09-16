@@ -31,9 +31,8 @@ def create_pdf(df):
     """Generates a PDF from a DataFrame."""
     pdf = FPDF()
     pdf.add_page()
-    # Add a font that supports a wider range of characters
-    pdf.add_font('DejaVu', '', 'DejaVuSans.ttf', uni=True)
-    pdf.set_font('DejaVu', '', 12)
+    # Use a standard, built-in font
+    pdf.set_font('Helvetica', '', 12)
     
     # Define column widths
     col_widths = {
@@ -43,19 +42,24 @@ def create_pdf(df):
     }
     
     # Table Header
-    pdf.set_font('DejaVu', 'B', 12)
+    pdf.set_font('Helvetica', 'B', 12)
     pdf.cell(col_widths["roll_no"], 10, 'Roll No.', 1, 0, 'C')
     pdf.cell(col_widths["name"], 10, 'Name', 1, 0, 'C')
     pdf.cell(col_widths["group_name"], 10, 'Group', 1, 1, 'C')
     
-    pdf.set_font('DejaVu', '', 12)
+    pdf.set_font('Helvetica', '', 12)
     # Table Rows
     for index, row in df.iterrows():
-        pdf.cell(col_widths["roll_no"], 10, str(row['roll_no']), 1, 0)
-        pdf.cell(col_widths["name"], 10, str(row['name']), 1, 0)
-        pdf.cell(col_widths["group_name"], 10, str(row['group_name']), 1, 1)
+        # Encode strings to latin-1 to handle special characters if any
+        roll_no = str(row['roll_no']).encode('latin-1', 'replace').decode('latin-1')
+        name = str(row['name']).encode('latin-1', 'replace').decode('latin-1')
+        group_name = str(row['group_name']).encode('latin-1', 'replace').decode('latin-1')
+
+        pdf.cell(col_widths["roll_no"], 10, roll_no, 1, 0)
+        pdf.cell(col_widths["name"], 10, name, 1, 0)
+        pdf.cell(col_widths["group_name"], 10, group_name, 1, 1)
         
-    # Return PDF as bytes. The output method with no dest returns bytes.
+    # Return PDF as bytes.
     return pdf.output()
 
 # --- Streamlit App ---
@@ -90,9 +94,6 @@ if app_mode == "Compact List":
         
         st.markdown("---")
         
-        # Add a placeholder for the font file that will be needed.
-        st.info("To generate PDFs with special characters, you may need to add a `DejaVuSans.ttf` font file to your GitHub repository.")
-        
         # Generate PDF bytes
         try:
             pdf_bytes = create_pdf(student_data)
@@ -103,8 +104,6 @@ if app_mode == "Compact List":
                 file_name="student_list_2025.pdf",
                 mime="application/pdf" # Correct mime type for PDF
             )
-        except FileNotFoundError:
-             st.error("The `DejaVuSans.ttf` font file was not found. Please add it to your repository to enable PDF downloads.")
         except Exception as e:
             st.error(f"An error occurred while generating the PDF: {e}")
 
