@@ -59,8 +59,8 @@ def create_pdf(df):
         pdf.cell(col_widths["name"], 10, name, 1, 0)
         pdf.cell(col_widths["group_name"], 10, group_name, 1, 1)
         
-    # Return PDF as bytes.
-    return pdf.output()
+    # Return PDF as bytes, explicitly converting from bytearray if necessary.
+    return bytes(pdf.output())
 
 # --- Streamlit App ---
 
