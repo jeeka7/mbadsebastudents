@@ -28,27 +28,38 @@ def read_students():
     return pd.DataFrame() # Return an empty DataFrame on error
 
 def create_pdf(df):
-    """Generates a PDF from a DataFrame."""
+    """Generates a PDF from a DataFrame with dynamic column widths."""
     pdf = FPDF()
     pdf.add_page()
-    # Use a standard, built-in font
     pdf.set_font('Helvetica', '', 12)
+
+    # --- Dynamic Width Calculation ---
+    # Calculate width for the 'Name' header, adding some padding
+    pdf.set_font('Helvetica', 'B', 12)
+    name_header_width = pdf.get_string_width('Name') + 6 
+
+    # Find the maximum width required for the names in the dataframe, adding padding
+    pdf.set_font('Helvetica', '', 12)
+    max_name_width = max(pdf.get_string_width(str(name)) for name in df['name']) + 6
+
+    # The final name column width is the larger of the header or the longest name
+    name_col_width = max(name_header_width, max_name_width)
     
-    # Define column widths
+    # Define final column widths
     col_widths = {
-        "roll_no": 25,
-        "name": 100,
-        "group_name": 20
+        "roll_no": 20,              # A fixed, suitable width
+        "name": name_col_width,     # The dynamically calculated width
+        "group_name": 15            # A smaller fixed width for the group
     }
     
-    # Table Header
+    # --- Table Header ---
     pdf.set_font('Helvetica', 'B', 12)
     pdf.cell(col_widths["roll_no"], 10, 'Roll No.', 1, 0, 'C')
     pdf.cell(col_widths["name"], 10, 'Name', 1, 0, 'C')
     pdf.cell(col_widths["group_name"], 10, 'Group', 1, 1, 'C')
     
+    # --- Table Rows ---
     pdf.set_font('Helvetica', '', 12)
-    # Table Rows
     for index, row in df.iterrows():
         # Encode strings to latin-1 to handle special characters if any
         roll_no = str(row['roll_no']).encode('latin-1', 'replace').decode('latin-1')
