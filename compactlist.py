@@ -1,6 +1,7 @@
 import streamlit as st
 import sqlite3
 import pandas as pd
+from fpdf import FPDF
 
 def get_db_connection():
     """Establishes a connection to the SQLite database."""
@@ -25,6 +26,34 @@ def read_students():
             st.error(f"An error occurred while reading from the database: {e}")
             conn.close()
     return pd.DataFrame() # Return an empty DataFrame on error
+
+def create_pdf(df):
+    """Generates a PDF from a DataFrame."""
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font("Arial", "B", 12)
+    
+    # Define column widths
+    col_widths = {
+        "roll_no": 25,
+        "name": 100,
+        "group_name": 20
+    }
+    
+    # Table Header
+    pdf.cell(col_widths["roll_no"], 10, 'Roll No.', 1, 0, 'C')
+    pdf.cell(col_widths["name"], 10, 'Name', 1, 0, 'C')
+    pdf.cell(col_widths["group_name"], 10, 'Group', 1, 1, 'C')
+    
+    pdf.set_font("Arial", "", 12)
+    # Table Rows
+    for index, row in df.iterrows():
+        pdf.cell(col_widths["roll_no"], 10, str(row['roll_no']), 1, 0)
+        pdf.cell(col_widths["name"], 10, str(row['name']), 1, 0)
+        pdf.cell(col_widths["group_name"], 10, str(row['group_name']), 1, 1)
+        
+    # Return PDF as bytes
+    return pdf.output(dest='S').encode('latin-1')
 
 # --- Streamlit App ---
 
@@ -54,6 +83,19 @@ if app_mode == "Compact List":
                 "name": st.column_config.TextColumn("Name"),
                 "group_name": st.column_config.TextColumn("Group"),
             }
+        )
+        
+        st.markdown("---")
+        
+        # Generate PDF bytes
+        pdf_bytes = create_pdf(student_data)
+        
+        # Add a download button for the PDF
+        st.download_button(
+            label="Download as PDF",
+            data=pdf_bytes,
+            file_name="student_list_2025.pdf",
+            mime="application/octet-stream"
         )
     else:
         st.warning("No student data found or an error occurred. Please ensure the 'students.db' file is in the same directory and contains a 'students' table.")
