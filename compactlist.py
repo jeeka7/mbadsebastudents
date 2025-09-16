@@ -49,14 +49,16 @@ def create_pdf(df):
     col_widths = {
         "roll_no": 20,              # A fixed, suitable width
         "name": name_col_width,     # The dynamically calculated width
-        "group_name": 15            # A smaller fixed width for the group
+        "group_name": 15,           # A smaller fixed width for the group
+        "signature": 50             # A fixed width for the signature column
     }
     
     # --- Table Header ---
     pdf.set_font('Helvetica', 'B', 12)
     pdf.cell(col_widths["roll_no"], 10, 'Roll No.', 1, 0, 'C')
     pdf.cell(col_widths["name"], 10, 'Name', 1, 0, 'C')
-    pdf.cell(col_widths["group_name"], 10, 'Group', 1, 1, 'C')
+    pdf.cell(col_widths["group_name"], 10, 'Group', 1, 0, 'C')
+    pdf.cell(col_widths["signature"], 10, 'Signature', 1, 1, 'C')
     
     # --- Table Rows ---
     pdf.set_font('Helvetica', '', 12)
@@ -68,7 +70,8 @@ def create_pdf(df):
 
         pdf.cell(col_widths["roll_no"], 10, roll_no, 1, 0)
         pdf.cell(col_widths["name"], 10, name, 1, 0)
-        pdf.cell(col_widths["group_name"], 10, group_name, 1, 1)
+        pdf.cell(col_widths["group_name"], 10, group_name, 1, 0)
+        pdf.cell(col_widths["signature"], 10, '', 1, 1) # Add an empty cell for the signature
         
     # Return PDF as bytes, explicitly converting from bytearray if necessary.
     return bytes(pdf.output())
@@ -112,7 +115,7 @@ if app_mode == "Compact List":
             st.download_button(
                 label="Download as PDF",
                 data=pdf_bytes,
-                file_name="student_list_2025.pdf",
+                file_name="student_attendance_2025.pdf",
                 mime="application/pdf" # Correct mime type for PDF
             )
         except Exception as e:
