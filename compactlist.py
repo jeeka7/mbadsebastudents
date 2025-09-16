@@ -32,21 +32,29 @@ st.set_page_config(page_title="MBA DSE BA 2025 Batch", layout="wide")
 
 st.title("MBA DSE BA 2025 Batch")
 
-# Read and display the data from the database
-student_data = read_students()
+# --- Sidebar Navigation ---
+st.sidebar.title("View Options")
+# Create a select box in the sidebar for navigation
+app_mode = st.sidebar.selectbox("Choose a view:", ["Compact List"])
 
-if not student_data.empty:
-    # Use st.dataframe to display the data in a table. It's already a DataFrame.
-    st.dataframe(
-        student_data,
-        use_container_width=True,
-        hide_index=True,
-        column_config={
-            "roll_no": st.column_config.NumberColumn("Roll No.", format="%d"),
-            "name": st.column_config.TextColumn("Name"),
-            "group_name": st.column_config.TextColumn("Group"),
-        }
-    )
-else:
-    st.warning("No student data found or an error occurred. Please ensure the 'students.db' file is in the same directory and contains a 'students' table.")
+# --- Display Content Based on Sidebar Selection ---
+if app_mode == "Compact List":
+    st.header("Compact Student List")
+    # Read and display the data from the database
+    student_data = read_students()
+
+    if not student_data.empty:
+        # Use st.dataframe to display the data in a table. It's already a DataFrame.
+        st.dataframe(
+            student_data,
+            use_container_width=True,
+            hide_index=True,
+            column_config={
+                "roll_no": st.column_config.NumberColumn("Roll No.", format="%d"),
+                "name": st.column_config.TextColumn("Name"),
+                "group_name": st.column_config.TextColumn("Group"),
+            }
+        )
+    else:
+        st.warning("No student data found or an error occurred. Please ensure the 'students.db' file is in the same directory and contains a 'students' table.")
 
