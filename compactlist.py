@@ -53,7 +53,8 @@ def create_pdf(df):
         pdf.cell(col_widths["group_name"], 10, str(row['group_name']), 1, 1)
         
     # Return PDF as bytes
-    return pdf.output(dest='S').encode('latin-1')
+    # The output is already bytes, no need to encode
+    return pdf.output()
 
 # --- Streamlit App ---
 
@@ -99,4 +100,5 @@ if app_mode == "Compact List":
         )
     else:
         st.warning("No student data found or an error occurred. Please ensure the 'students.db' file is in the same directory and contains a 'students' table.")
+
 
