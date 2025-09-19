@@ -187,7 +187,7 @@ elif app_mode == "Attendance Maker":
 
         # --- Attendance Input ---
         st.subheader("Mark Attendance")
-        input_method = st.radio("How do you want to mark attendance?", ('Enter Absentes', 'Enter Presents'))
+        input_method = st.radio("How do you want to mark attendance?", ('Enter Absentees', 'Enter Present'))
         roll_numbers_str = st.text_area("Enter roll numbers (comma, space, or newline separated):")
         
         if st.button("Generate Attendance PDF"):
@@ -202,7 +202,7 @@ elif app_mode == "Attendance Maker":
                 if out_of_range_rolls:
                     st.warning(f"The following roll numbers were ignored as they are not in the class list: {sorted(list(out_of_range_rolls))}")
 
-                if input_method == 'Enter Absentes':
+                if input_method == 'Enter Absentees':
                     absent_rolls = input_rolls.intersection(total_rolls)
                     present_rolls = total_rolls - absent_rolls
                 else:
