@@ -2,6 +2,7 @@ import streamlit as st
 import sqlite3
 import pandas as pd
 from fpdf import FPDF
+import re
 
 def get_db_connection():
     """Establishes a connection to the SQLite database."""
@@ -27,30 +28,21 @@ def read_students():
             conn.close()
     return pd.DataFrame() # Return an empty DataFrame on error
 
-def create_pdf(df):
-    """Generates a PDF from a DataFrame with dynamic column widths."""
+def create_signature_pdf(df):
+    """Generates a PDF for signatures from a DataFrame with dynamic column widths."""
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font('Helvetica', '', 12)
 
     # --- Dynamic Width Calculation ---
-    # Calculate width for the 'Name' header, adding some padding
     pdf.set_font('Helvetica', 'B', 12)
     name_header_width = pdf.get_string_width('Name') + 6 
-
-    # Find the maximum width required for the names in the dataframe, adding padding
     pdf.set_font('Helvetica', '', 12)
     max_name_width = max(pdf.get_string_width(str(name)) for name in df['name']) + 6
-
-    # The final name column width is the larger of the header or the longest name
     name_col_width = max(name_header_width, max_name_width)
     
-    # Define final column widths
     col_widths = {
-        "roll_no": 20,              # A fixed, suitable width
-        "name": name_col_width,     # The dynamically calculated width
-        "group_name": 15,           # A smaller fixed width for the group
-        "signature": 50             # A fixed width for the signature column
+        "roll_no": 20, "name": name_col_width, "group_name": 15, "signature": 50
     }
     
     # --- Table Header ---
@@ -63,7 +55,6 @@ def create_pdf(df):
     # --- Table Rows ---
     pdf.set_font('Helvetica', '', 12)
     for index, row in df.iterrows():
-        # Encode strings to latin-1 to handle special characters if any
         roll_no = str(row['roll_no']).encode('latin-1', 'replace').decode('latin-1')
         name = str(row['name']).encode('latin-1', 'replace').decode('latin-1')
         group_name = str(row['group_name']).encode('latin-1', 'replace').decode('latin-1')
@@ -71,56 +62,132 @@ def create_pdf(df):
         pdf.cell(col_widths["roll_no"], 10, roll_no, 1, 0)
         pdf.cell(col_widths["name"], 10, name, 1, 0)
         pdf.cell(col_widths["group_name"], 10, group_name, 1, 0)
-        pdf.cell(col_widths["signature"], 10, '', 1, 1) # Add an empty cell for the signature
+        pdf.cell(col_widths["signature"], 10, '', 1, 1)
         
-    # Return PDF as bytes, explicitly converting from bytearray if necessary.
     return bytes(pdf.output())
 
+def create_attendance_pdf(df):
+    """Generates a PDF with an attendance status column."""
+    pdf = FPDF()
+    pdf.add_page()
+    pdf.set_font('Helvetica', '', 12)
+
+    # --- Dynamic Width Calculation ---
+    pdf.set_font('Helvetica', 'B', 12)
+    name_header_width = pdf.get_string_width('Name') + 6
+    pdf.set_font('Helvetica', '', 12)
+    max_name_width = max(pdf.get_string_width(str(name)) for name in df['name']) + 6
+    name_col_width = max(name_header_width, max_name_width)
+
+    col_widths = {
+        "roll_no": 20, "name": name_col_width, "group_name": 15, "status": 25
+    }
+
+    # --- Table Header ---
+    pdf.set_font('Helvetica', 'B', 12)
+    pdf.cell(col_widths["roll_no"], 10, 'Roll No.', 1, 0, 'C')
+    pdf.cell(col_widths["name"], 10, 'Name', 1, 0, 'C')
+    pdf.cell(col_widths["group_name"], 10, 'Group', 1, 0, 'C')
+    pdf.cell(col_widths["status"], 10, 'Status', 1, 1, 'C')
+
+    # --- Table Rows ---
+    pdf.set_font('Helvetica', '', 12)
+    for _, row in df.iterrows():
+        # Set color for absent students
+        if row['status'] == 'Absent':
+            pdf.set_fill_color(255, 204, 203)  # Light red
+            fill = True
+        else:
+            fill = False
+
+        roll_no = str(row['roll_no']).encode('latin-1', 'replace').decode('latin-1')
+        name = str(row['name']).encode('latin-1', 'replace').decode('latin-1')
+        group_name = str(row['group_name']).encode('latin-1', 'replace').decode('latin-1')
+        
+        pdf.cell(col_widths["roll_no"], 10, roll_no, 1, 0, fill=fill)
+        pdf.cell(col_widths["name"], 10, name, 1, 0, fill=fill)
+        pdf.cell(col_widths["group_name"], 10, group_name, 1, 0, fill=fill)
+        pdf.cell(col_widths["status"], 10, row['status'], 1, 1, fill=fill)
+
+    return bytes(pdf.output())
+
+
 # --- Streamlit App ---
-
 st.set_page_config(page_title="MBA DSE BA 2025 Batch", layout="wide")
-
 st.title("MBA DSE BA 2025 Batch")
 
 # --- Sidebar Navigation ---
 st.sidebar.title("View Options")
-# Create a select box in the sidebar for navigation
-app_mode = st.sidebar.selectbox("Choose a view:", ["Compact List"])
+app_mode = st.sidebar.selectbox("Choose a view:", ["Compact List", "Attendance Maker"])
+
+# --- Student Data Loading ---
+student_data = read_students()
 
 # --- Display Content Based on Sidebar Selection ---
 if app_mode == "Compact List":
     st.header("Compact Student List")
-    # Read and display the data from the database
-    student_data = read_students()
-
     if not student_data.empty:
-        # Use st.dataframe to display the data in a table. It's already a DataFrame.
         st.dataframe(
-            student_data,
-            use_container_width=True,
-            hide_index=True,
+            student_data, use_container_width=True, hide_index=True,
             column_config={
                 "roll_no": st.column_config.NumberColumn("Roll No.", format="%d"),
                 "name": st.column_config.TextColumn("Name"),
                 "group_name": st.column_config.TextColumn("Group"),
             }
         )
-        
         st.markdown("---")
-        
-        # Generate PDF bytes
         try:
-            pdf_bytes = create_pdf(student_data)
-            # Add a download button for the PDF
+            pdf_bytes = create_signature_pdf(student_data)
             st.download_button(
-                label="Download as PDF",
-                data=pdf_bytes,
-                file_name="student_attendance_2025.pdf",
-                mime="application/pdf" # Correct mime type for PDF
+                label="Download as PDF for Signatures", data=pdf_bytes,
+                file_name="student_signature_sheet.pdf", mime="application/pdf"
             )
         except Exception as e:
             st.error(f"An error occurred while generating the PDF: {e}")
-
     else:
-        st.warning("No student data found or an error occurred. Please ensure the 'students.db' file is in the same directory and contains a 'students' table.")
+        st.warning("No student data found.")
+
+elif app_mode == "Attendance Maker":
+    st.header("Attendance Maker")
+    if not student_data.empty:
+        input_method = st.radio("How do you want to mark attendance?", ('Enter Absentees', 'Enter Presents'))
+        
+        roll_numbers_str = st.text_area("Enter roll numbers (comma, space, or newline separated):")
+        
+        if st.button("Generate Attendance PDF"):
+            # Process the input roll numbers
+            if roll_numbers_str.strip():
+                # Find all numbers in the input string
+                number_list = re.findall(r'\d+', roll_numbers_str)
+                input_rolls = {int(num) for num in number_list}
+                
+                total_rolls = set(student_data['roll_no'])
+                
+                if input_method == 'Enter Absentees':
+                    absent_rolls = input_rolls.intersection(total_rolls)
+                    present_rolls = total_rolls - absent_rolls
+                else: # 'Enter Presents'
+                    present_rolls = input_rolls.intersection(total_rolls)
+                    absent_rolls = total_rolls - present_rolls
+                
+                # Create the status column
+                def get_status(roll):
+                    return "Present" if roll in present_rolls else "Absent"
+                
+                attendance_df = student_data.copy()
+                attendance_df['status'] = attendance_df['roll_no'].apply(get_status)
+                
+                # Generate and offer download for the PDF
+                try:
+                    pdf_bytes = create_attendance_pdf(attendance_df)
+                    st.download_button(
+                        label="Download Attendance Sheet", data=pdf_bytes,
+                        file_name="student_attendance_sheet.pdf", mime="application/pdf"
+                    )
+                except Exception as e:
+                    st.error(f"An error occurred while generating the PDF: {e}")
+            else:
+                st.warning("Please enter some roll numbers.")
+    else:
+        st.warning("No student data found.")
 
