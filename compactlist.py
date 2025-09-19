@@ -197,6 +197,11 @@ elif app_mode == "Attendance Maker":
                 
                 total_rolls = set(student_data['roll_no'])
                 
+                # Check for and warn about invalid roll numbers
+                out_of_range_rolls = input_rolls - total_rolls
+                if out_of_range_rolls:
+                    st.warning(f"The following roll numbers were ignored as they are not in the class list: {sorted(list(out_of_range_rolls))}")
+
                 if input_method == 'Enter Absentes':
                     absent_rolls = input_rolls.intersection(total_rolls)
                     present_rolls = total_rolls - absent_rolls
