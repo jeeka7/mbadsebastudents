@@ -3,6 +3,7 @@ import sqlite3
 import pandas as pd
 from fpdf import FPDF
 import re
+from datetime import datetime
 
 def get_db_connection():
     """Establishes a connection to the SQLite database."""
@@ -66,11 +67,19 @@ def create_signature_pdf(df):
         
     return bytes(pdf.output())
 
-def create_attendance_pdf(df):
-    """Generates a PDF with an attendance status column."""
+def create_attendance_pdf(df, attendance_date, course_name, course_type):
+    """Generates a PDF with an attendance status column and course details."""
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font('Helvetica', '', 12)
+
+    # --- PDF Header ---
+    pdf.set_font('Helvetica', 'B', 14)
+    pdf.cell(0, 10, 'MBA DSE BA 2025 - Attendance Sheet', 0, 1, 'C')
+    pdf.set_font('Helvetica', '', 11)
+    pdf.cell(0, 8, f"Date: {attendance_date.strftime('%B %d, %Y')}", 0, 1, 'L')
+    pdf.cell(0, 8, f"Course: {course_name} ({course_type})", 0, 1, 'L')
+    pdf.ln(5) # Add a little space before the table
 
     # --- Dynamic Width Calculation ---
     pdf.set_font('Helvetica', 'B', 12)
@@ -150,14 +159,30 @@ if app_mode == "Compact List":
 elif app_mode == "Attendance Maker":
     st.header("Attendance Maker")
     if not student_data.empty:
-        input_method = st.radio("How do you want to mark attendance?", ('Enter Absentees', 'Enter Presents'))
+        # --- New Input Fields ---
+        st.subheader("Course Details")
+        course_list = [
+            "Indian Knowledge System", "Marketing", "Management", "Analytics",
+            "Visualisation", "Economics", "Statistics", "Accounting"
+        ]
         
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            attendance_date = st.date_input("Select Date", datetime.now())
+        with col2:
+            course_name = st.selectbox("Select Course", course_list)
+        with col3:
+            course_type = st.selectbox("Select Type", ["Theory", "Practical"])
+        
+        st.markdown("---")
+
+        # --- Attendance Input ---
+        st.subheader("Mark Attendance")
+        input_method = st.radio("How do you want to mark attendance?", ('Enter Absentees', 'Enter Presents'))
         roll_numbers_str = st.text_area("Enter roll numbers (comma, space, or newline separated):")
         
         if st.button("Generate Attendance PDF"):
-            # Process the input roll numbers
             if roll_numbers_str.strip():
-                # Find all numbers in the input string
                 number_list = re.findall(r'\d+', roll_numbers_str)
                 input_rolls = {int(num) for num in number_list}
                 
@@ -166,23 +191,22 @@ elif app_mode == "Attendance Maker":
                 if input_method == 'Enter Absentees':
                     absent_rolls = input_rolls.intersection(total_rolls)
                     present_rolls = total_rolls - absent_rolls
-                else: # 'Enter Presents'
+                else:
                     present_rolls = input_rolls.intersection(total_rolls)
                     absent_rolls = total_rolls - present_rolls
                 
-                # Create the status column
                 def get_status(roll):
                     return "Present" if roll in present_rolls else "Absent"
                 
                 attendance_df = student_data.copy()
                 attendance_df['status'] = attendance_df['roll_no'].apply(get_status)
                 
-                # Generate and offer download for the PDF
                 try:
-                    pdf_bytes = create_attendance_pdf(attendance_df)
+                    # Pass new details to the PDF function
+                    pdf_bytes = create_attendance_pdf(attendance_df, attendance_date, course_name, course_type)
                     st.download_button(
                         label="Download Attendance Sheet", data=pdf_bytes,
-                        file_name="student_attendance_sheet.pdf", mime="application/pdf"
+                        file_name=f"attendance_{attendance_date.strftime('%Y-%m-%d')}.pdf", mime="application/pdf"
                     )
                 except Exception as e:
                     st.error(f"An error occurred while generating the PDF: {e}")
