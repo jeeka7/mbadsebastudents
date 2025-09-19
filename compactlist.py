@@ -68,7 +68,7 @@ def create_signature_pdf(df):
     return bytes(pdf.output())
 
 def create_attendance_pdf(df, attendance_date, course_name, course_type):
-    """Generates a PDF with an attendance status column and course details."""
+    """Generates a PDF with an attendance status column, course details, and a summary."""
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font('Helvetica', '', 12)
@@ -117,6 +117,15 @@ def create_attendance_pdf(df, attendance_date, course_name, course_type):
         pdf.cell(col_widths["name"], 10, name, 1, 0, fill=fill)
         pdf.cell(col_widths["group_name"], 10, group_name, 1, 0, fill=fill)
         pdf.cell(col_widths["status"], 10, row['status'], 1, 1, fill=fill)
+
+    # --- Attendance Summary ---
+    pdf.ln(10) # Add some space after the table
+    present_count = df['status'].value_counts().get('Present', 0)
+    absent_count = df['status'].value_counts().get('Absent', 0)
+    
+    pdf.set_font('Helvetica', 'B', 12)
+    pdf.cell(0, 8, f"Total Present: {present_count}", 0, 1, 'L')
+    pdf.cell(0, 8, f"Total Absent: {absent_count}", 0, 1, 'L')
 
     return bytes(pdf.output())
 
@@ -178,7 +187,7 @@ elif app_mode == "Attendance Maker":
 
         # --- Attendance Input ---
         st.subheader("Mark Attendance")
-        input_method = st.radio("How do you want to mark attendance?", ('Enter Absentees', 'Enter Presents'))
+        input_method = st.radio("How do you want to mark attendance?", ('Enter Absentes', 'Enter Presents'))
         roll_numbers_str = st.text_area("Enter roll numbers (comma, space, or newline separated):")
         
         if st.button("Generate Attendance PDF"):
@@ -188,7 +197,7 @@ elif app_mode == "Attendance Maker":
                 
                 total_rolls = set(student_data['roll_no'])
                 
-                if input_method == 'Enter Absentees':
+                if input_method == 'Enter Absentes':
                     absent_rolls = input_rolls.intersection(total_rolls)
                     present_rolls = total_rolls - absent_rolls
                 else:
