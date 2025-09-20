@@ -148,7 +148,7 @@ st.title("MBA DSE BA 2025 Batch")
 
 # --- Sidebar Navigation ---
 st.sidebar.title("View Options")
-app_mode = st.sidebar.selectbox("Choose a view:", ["Compact List", "Attendance Maker"])
+app_mode = st.sidebar.selectbox("Choose a view:", ["Attendance Maker", "Compact List"])
 
 # --- Student Data Loading ---
 student_data = read_students()
